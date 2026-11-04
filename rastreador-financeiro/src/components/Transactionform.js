@@ -18,6 +18,7 @@ function getHoje() {
 export default function TransactionForm({ onAdd }) {
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
+  const [limite, setLimite] = useState("");
   const [tipo, setTipo] = useState("saida");
   const [categoria, setCategoria] = useState(CATEGORIAS[0]);
   const [data, setData] = useState(getHoje());
@@ -35,6 +36,7 @@ export default function TransactionForm({ onAdd }) {
     event.preventDefault();
 
     const valorNumerico = Number(valor);
+    const limiteNumerico = Number(limite);
 
     if (!descricao.trim()) {
       setErro("Informe uma descrição.");
@@ -42,6 +44,12 @@ export default function TransactionForm({ onAdd }) {
     }
     if (!valor || valorNumerico <= 0) {
       setErro("Informe um valor maior que zero.");
+      return;
+    }
+    if (limite && limiteNumerico > 0 && valorNumerico > limiteNumerico) {
+      setErro(
+        `O valor (R$ ${valorNumerico.toFixed(2)}) ultrapassa o limite de gastos (R$ ${limiteNumerico.toFixed(2)}).`
+      );
       return;
     }
     if (!data) {
@@ -90,6 +98,19 @@ export default function TransactionForm({ onAdd }) {
             placeholder="0,00"
             value={valor}
             onChange={(e) => setValor(e.target.value)}
+          />
+        </div>
+
+        <div className="transaction-form__field">
+          <label htmlFor="limite">Limite de gastos</label>
+          <input
+            id="limite"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0,00"
+            value={limite}
+            onChange={(e) => setLimite(e.target.value)}
           />
         </div>
 
