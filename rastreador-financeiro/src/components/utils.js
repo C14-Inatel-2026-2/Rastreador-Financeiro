@@ -7,7 +7,7 @@ export function filtrarPorPeriodo(transacoes, filtro) {
     } else if (filtro === 'mes') {
         inicio.setMonth(hoje.getMonth() - 1)
     } else if(filtro === 'ano') {
-        inicio.getFullYear(hoje.getFullYear() - 1)
+        inicio.setFullYear(hoje.getFullYear() - 1)
     }
 
     return transacoes.filter((t) => {
