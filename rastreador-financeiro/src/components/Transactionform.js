@@ -12,14 +12,31 @@ const CATEGORIAS = [
 ];
 
 function getHoje() {
-  return new Date().toISOString().split("T")[0];
+  const agora = new Date();
+  const mes = String(agora.getMonth() + 1).padStart(2, "0");
+  const dia = String(agora.getDate()).padStart(2, "0");
+  return `${agora.getFullYear()}-${mes}-${dia}`;
+}
+
+function sugerirCategoria(texto) {
+  const t = texto.toLowerCase();
+
+  if (t.includes("uber") || t.includes("posto") || t.includes("gasolina")) {
+    return "Transporte";
+  }
+  if (t.includes("supermercado") || t.includes("ifood")) {
+    return "Alimentação";
+  }
+  return null;
 }
 
 export default function TransactionForm({ onAdd }) {
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
+  const [limite, setLimite] = useState("");
   const [tipo, setTipo] = useState("saida");
   const [categoria, setCategoria] = useState(CATEGORIAS[0]);
+  const [categoriaManual, setCategoriaManual] = useState(false);
   const [data, setData] = useState(getHoje());
   const [erro, setErro] = useState("");
 
@@ -28,13 +45,22 @@ export default function TransactionForm({ onAdd }) {
     setValor("");
     setTipo("saida");
     setCategoria(CATEGORIAS[0]);
+    setCategoriaManual(false);
     setData(getHoje());
+  }
+
+  function handleDescricaoBlur() {
+    const sugerida = sugerirCategoria(descricao);
+    if (sugerida && !categoriaManual) {
+      setCategoria(sugerida);
+    }
   }
 
   function handleSubmit(event) {
     event.preventDefault();
 
     const valorNumerico = Number(valor);
+    const limiteNumerico = Number(limite);
 
     if (!descricao.trim()) {
       setErro("Informe uma descrição.");
@@ -42,6 +68,12 @@ export default function TransactionForm({ onAdd }) {
     }
     if (!valor || valorNumerico <= 0) {
       setErro("Informe um valor maior que zero.");
+      return;
+    }
+    if (limite && limiteNumerico > 0 && valorNumerico > limiteNumerico) {
+      setErro(
+        `O valor (R$ ${valorNumerico.toFixed(2)}) ultrapassa o limite de gastos (R$ ${limiteNumerico.toFixed(2)}).`
+      );
       return;
     }
     if (!data) {
@@ -76,6 +108,7 @@ export default function TransactionForm({ onAdd }) {
           placeholder="Ex: Supermercado, Salário..."
           value={descricao}
           onChange={(e) => setDescricao(e.target.value)}
+          onBlur={handleDescricaoBlur}
         />
       </div>
 
@@ -90,6 +123,19 @@ export default function TransactionForm({ onAdd }) {
             placeholder="0,00"
             value={valor}
             onChange={(e) => setValor(e.target.value)}
+          />
+        </div>
+
+        <div className="transaction-form__field">
+          <label htmlFor="limite">Limite de gastos</label>
+          <input
+            id="limite"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0,00"
+            value={limite}
+            onChange={(e) => setLimite(e.target.value)}
           />
         </div>
 
@@ -110,7 +156,10 @@ export default function TransactionForm({ onAdd }) {
           <select
             id="categoria"
             value={categoria}
-            onChange={(e) => setCategoria(e.target.value)}
+            onChange={(e) => {
+            setCategoria(e.target.value);
+            setCategoriaManual(true);
+          }}
           >
             {CATEGORIAS.map((cat) => (
               <option key={cat} value={cat}>

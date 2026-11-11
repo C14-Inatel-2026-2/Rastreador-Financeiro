@@ -67,3 +67,56 @@ describe('TransactionForm - com mock', () => {
     expect(screen.getByLabelText(/valor/i)).toHaveValue(null)
   })
 })
+
+describe('TransactionForm - sugestão de categoria', () => {
+  let onAdd
+
+  beforeEach(() => {
+    onAdd = jest.fn()
+    Object.defineProperty(global, 'crypto', {
+      value: { randomUUID: jest.fn(() => 'uuid-fixo') },
+      configurable: true,
+    })
+  })
+
+  test('sugere Transporte ao sair do campo com "Uber"', () => {
+    render(<TransactionForm onAdd={onAdd} />)
+
+    userEvent.type(screen.getByLabelText(/descrição/i), 'Uber')
+    userEvent.tab()
+
+    expect(screen.getByLabelText(/categoria/i)).toHaveValue('Transporte')
+  })
+
+  test('sugere Alimentação ao sair do campo com "Ifood"', () => {
+    render(<TransactionForm onAdd={onAdd} />)
+
+    userEvent.type(screen.getByLabelText(/descrição/i), 'Uber')
+    userEvent.tab()
+    expect(screen.getByLabelText(/categoria/i)).toHaveValue('Transporte')
+
+    userEvent.clear(screen.getByLabelText(/descrição/i))
+    userEvent.type(screen.getByLabelText(/descrição/i), 'Ifood')
+    userEvent.tab()
+
+    expect(screen.getByLabelText(/categoria/i)).toHaveValue('Alimentação')
+  })
+
+  test('a categoria escolhida manualmente é a que vale ao salvar', () => {
+    render(<TransactionForm onAdd={onAdd} />)
+
+    userEvent.type(screen.getByLabelText(/descrição/i), 'Uber')
+    userEvent.tab()
+    userEvent.selectOptions(screen.getByLabelText(/categoria/i), 'Lazer')
+
+    userEvent.click(screen.getByLabelText(/descrição/i))
+    userEvent.tab()
+
+    userEvent.type(screen.getByLabelText(/valor/i), '25')
+    userEvent.click(screen.getByRole('button', { name: /adicionar transação/i }))
+
+    expect(onAdd).toHaveBeenCalledWith(
+      expect.objectContaining({ categoria: 'Lazer' })
+    )
+  })
+})
