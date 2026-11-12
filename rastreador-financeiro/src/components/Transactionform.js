@@ -22,9 +22,25 @@ export default function Transactionform({ onAdd }) {
   const [limite, setLimite] = useState("");
   const [tipo, setTipo] = useState("saida");
   const [categoria, setCategoria] = useState(CATEGORIAS[0]);
+  const [categoriaManual, setCategoriaManual] = useState(false);
   const [data, setData] = useState(getHoje());
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
+
+  function sugerirCategoria(texto) {
+    const t = texto.toLowerCase();
+    if (t.includes("uber") || t.includes("onibus") || t.includes("gasolina")) return "Transporte";
+    if (t.includes("mercado") || t.includes("supermercado") || t.includes("comida")) return "Alimentação";
+    if (t.includes("salario") || t.includes("pix") || t.includes("recebimento")) return "Salário";
+    return null;
+  }
+
+  function handleDescricaoBlur() {
+    const sugerida = sugerirCategoria(descricao);
+    if (sugerida && !categoriaManual) {
+      setCategoria(sugerida);
+    }
+  }
 
   function limparFormulario() {
     setDescricao("");
@@ -32,6 +48,7 @@ export default function Transactionform({ onAdd }) {
     setLimite("");
     setTipo("saida");
     setCategoria(CATEGORIAS[0]);
+    setCategoriaManual(false);
     setData(getHoje());
   }
 
@@ -66,6 +83,7 @@ export default function Transactionform({ onAdd }) {
         category: categoria,
         description: descricao.trim(),
       };
+
 
       const { data: dadosInseridos, error } = await supabase
         .from("id")
@@ -110,6 +128,7 @@ export default function Transactionform({ onAdd }) {
           placeholder="Ex: Supermercado, Salário..."
           value={descricao}
           onChange={(e) => setDescricao(e.target.value)}
+          onBlur={handleDescricaoBlur}
         />
       </div>
 
@@ -157,7 +176,10 @@ export default function Transactionform({ onAdd }) {
           <select
             id="categoria"
             value={categoria}
-            onChange={(e) => setCategoria(e.target.value)}
+            onChange={(e) => {
+              setCategoria(e.target.value);
+              setCategoriaManual(true);
+            }}
           >
             {CATEGORIAS.map((cat) => (
               <option key={cat} value={cat}>

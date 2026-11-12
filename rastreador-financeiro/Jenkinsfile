@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        node {
+            label ''
+            customWorkspace "C:\\jw\\rastreador-${env.BRANCH_NAME.replace('/', '-')}"
+        }
+    }
 
     tools { nodejs 'node20' }
 
@@ -11,11 +16,9 @@ pipeline {
     }
 
     environment {
-        APP_DIR    = 'rastreador-financeiro'
-        DEPLOY_DIR = "${env.JENKINS_HOME}\\deploy\\rastreador"
-        APP_PORT   = '8081'
-        CI         = 'true'
-        IMAGE      = 'renata1821/rastreador-financeiro'
+        APP_DIR = 'rastreador-financeiro'
+        CI      = 'true'
+        IMAGE   = 'renata1821/rastreador-financeiro'
     }
 
     stages {
@@ -35,6 +38,7 @@ pipeline {
         stage('Testes') {
             steps {
                 dir(env.APP_DIR) {
+                    bat 'npm ci --no-audit --no-fund'
                     bat 'npm run test:ci'
                 }
             }
@@ -83,10 +87,12 @@ pipeline {
                     if %ERRORLEVEL% GEQ 8 exit /b 1
                     exit /b 0
                 '''
+
                 bat '''
                     for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":%APP_PORT%" ^| findstr LISTENING') do taskkill /F /PID %%a
                     exit /b 0
                 '''
+
                 withEnv(['JENKINS_NODE_COOKIE=dontKillMe', 'BUILD_ID=dontKillMe']) {
                     bat '''
                         start "" /B cmd /c "npx --yes serve -s "%DEPLOY_DIR%" -l %APP_PORT% > nul 2>&1"
@@ -98,7 +104,7 @@ pipeline {
     }
 
     post {
-        success { echo "App publicado em http://localhost:${APP_PORT} e imagem em docker.io/${IMAGE}:latest" }
+        success { echo "Imagem publicada em docker.io/${IMAGE}:latest" }
         failure { echo 'Pipeline falhou - verifique o stage destacado.' }
     }
 }
