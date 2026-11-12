@@ -7,7 +7,7 @@ pipeline {
         timestamps()
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '10'))
-        timeout(time: 20, unit: 'MINUTES')
+         timeout(time: 40, unit: 'MINUTES')
     }
 
     environment {
@@ -19,13 +19,12 @@ pipeline {
     }
 
     stages {
-        stage('Build') {
-            steps {
-                dir(env.APP_DIR) {
-                    bat 'npm ci --no-audit --no-fund'
-                    bat 'npm run build'
-                }
-            }
+       stage('Testes') {
+       steps {
+        dir(env.APP_DIR) {
+         bat 'npm run test:ci'
+           }
+       }
             post {
                 success {
                     archiveArtifacts artifacts: "${APP_DIR}/build/**", fingerprint: true

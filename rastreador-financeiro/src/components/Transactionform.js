@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "../services/supabaseClient";
 
 const CATEGORIAS = [
   "Alimentação",
@@ -15,7 +16,7 @@ function getHoje() {
   return new Date().toISOString().split("T")[0];
 }
 
-export default function TransactionForm({ onAdd }) {
+export default function Transactionform({ onAdd }) {
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [limite, setLimite] = useState("");
@@ -23,20 +24,22 @@ export default function TransactionForm({ onAdd }) {
   const [categoria, setCategoria] = useState(CATEGORIAS[0]);
   const [data, setData] = useState(getHoje());
   const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
 
   function limparFormulario() {
     setDescricao("");
     setValor("");
+    setLimite("");
     setTipo("saida");
     setCategoria(CATEGORIAS[0]);
     setData(getHoje());
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     const valorNumerico = Number(valor);
-    const limiteNumerico = Number(limite);
+    const limiteNumerico = limite ? Number(limite) : null;
 
     if (!descricao.trim()) {
       setErro("Informe uma descrição.");
@@ -46,30 +49,53 @@ export default function TransactionForm({ onAdd }) {
       setErro("Informe um valor maior que zero.");
       return;
     }
-    if (limite && limiteNumerico > 0 && valorNumerico > limiteNumerico) {
-      setErro(
-        `O valor (R$ ${valorNumerico.toFixed(2)}) ultrapassa o limite de gastos (R$ ${limiteNumerico.toFixed(2)}).`
-      );
-      return;
-    }
     if (!data) {
       setErro("Informe uma data.");
       return;
     }
 
     setErro("");
+    setCarregando(true);
 
-    const novaTransacao = {
-      id: crypto.randomUUID(),
-      descricao: descricao.trim(),
-      valor: valorNumerico,
-      tipo,
-      categoria,
-      data,
-    };
+    try {
+      const novaTransacaoSupabase = {
+        date: data,
+        value: valorNumerico,
+        value_limit: limiteNumerico,
+        type: tipo,
+        category: categoria,
+        description: descricao.trim(),
+      };
 
-    onAdd(novaTransacao);
-    limparFormulario();
+      const { data: dadosInseridos, error } = await supabase
+        .from("id")
+        .insert([novaTransacaoSupabase])
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      const transacaoCriada = dadosInseridos ? dadosInseridos[0] : novaTransacaoSupabase;
+
+      if (onAdd) {
+        onAdd({
+          id: transacaoCriada.id || crypto.randomUUID(),
+          descricao: transacaoCriada.description,
+          valor: transacaoCriada.value,
+          tipo: transacaoCriada.type,
+          categoria: transacaoCriada.category,
+          data: transacaoCriada.date,
+        });
+      }
+
+      limparFormulario();
+    } catch (err) {
+      console.error("Erro ao salvar:", err.message);
+      setErro("Erro ao salvar no banco de dados: " + err.message);
+    } finally {
+      setCarregando(false);
+    }
   }
 
   return (
@@ -164,8 +190,8 @@ export default function TransactionForm({ onAdd }) {
 
       {erro && <p className="transaction-form__erro">{erro}</p>}
 
-      <button type="submit" className="transaction-form__submit">
-        Adicionar transação
+      <button type="submit" className="transaction-form__submit" disabled={carregando}>
+        {carregando ? "Salvando..." : "Adicionar transação"}
       </button>
     </form>
   );
