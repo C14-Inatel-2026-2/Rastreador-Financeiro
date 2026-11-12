@@ -19,3 +19,20 @@
     justify-content: flex-start;
     max-width: 400px;
 }
+
+.grafico-vazio {
+    color: #757575;
+    font-size: 14px;
+    margin: 8px 0 0;
+}
+
+.grafico-vazio {
+    color: #757575;
+    font-size: 14px;
+    margin: 8px 0 0;
+}
+
+.filtros {
+    display: flex;
+    gap: 8px;
+}
