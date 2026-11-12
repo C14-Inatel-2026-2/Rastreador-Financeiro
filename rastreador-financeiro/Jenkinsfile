@@ -15,6 +15,7 @@ pipeline {
         DEPLOY_DIR = "${env.JENKINS_HOME}\\deploy\\rastreador"
         APP_PORT   = '8081'
         CI         = 'true'
+        IMAGE      = 'renata1821/rastreador-financeiro'
     }
 
     stages {
@@ -55,6 +56,25 @@ pipeline {
             }
         }
 
+        stage('Publicar imagem') {
+            when { branch 'main' }
+            steps {
+                dir(env.APP_DIR) {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub',
+                                                      usernameVariable: 'DH_USER',
+                                                      passwordVariable: 'DH_PASS')]) {
+                        bat '''
+                            docker build -t %IMAGE%:%BUILD_NUMBER% -t %IMAGE%:latest .
+                            echo %DH_PASS%| docker login -u %DH_USER% --password-stdin
+                            docker push %IMAGE%:%BUILD_NUMBER%
+                            docker push %IMAGE%:latest
+                            docker logout
+                        '''
+                    }
+                }
+            }
+        }
+
         stage('Deploy') {
             when { branch 'main' }
             steps {
@@ -79,7 +99,7 @@ pipeline {
     }
 
     post {
-        success { echo "App publicado em http://localhost:${APP_PORT}" }
+        success { echo "App publicado em http://localhost:${APP_PORT} e imagem em docker.io/${IMAGE}:latest" }
         failure { echo 'Pipeline falhou - verifique o stage destacado.' }
     }
 }
