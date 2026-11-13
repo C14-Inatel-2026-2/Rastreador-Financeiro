@@ -69,18 +69,17 @@ describe('TransactionForm - com mock', () => {
     await userEvent.click(screen.getByRole('button', { name: /entrada/i }))
     await userEvent.click(screen.getByRole('button', { name: /adicionar transação/i }))
 
-    await waitFor(() => {
-      expect(onAdd).toHaveBeenCalledTimes(1)
-      expect(onAdd).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: 'uuid-fixo',
-          descricao: 'Supermercado',
-          valor: 45.9,
-          tipo: 'entrada',
-          categoria: 'Lazer',
-        })
-      )
-    })
+    await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(1))
+
+    expect(onAdd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'uuid-fixo',
+        descricao: 'Supermercado',
+        valor: 45.9,
+        tipo: 'entrada',
+        categoria: 'Lazer',
+      })
+    )
   })
 
   test('limpa o formulário após adicionar', async () => {
@@ -90,10 +89,11 @@ describe('TransactionForm - com mock', () => {
     await userEvent.type(screen.getByLabelText(/valor/i), '8')
     await userEvent.click(screen.getByRole('button', { name: /adicionar transação/i }))
 
-    await waitFor(() => {
+    await waitFor(() =>
       expect(screen.getByLabelText(/descrição/i)).toHaveValue('')
-      expect(screen.getByLabelText(/valor/i)).toHaveValue(null)
-    })
+    )
+
+    expect(screen.getByLabelText(/valor/i)).toHaveValue(null)
   })
 })
 
@@ -128,8 +128,15 @@ describe('TransactionForm - sugestão de categoria', () => {
 
   test('sugere Alimentação ao sair do campo com "Ifood"', async () => {
     render(<TransactionForm onAdd={onAdd} />)
+    const descricao = screen.getByLabelText(/descrição/i)
 
-    await userEvent.type(screen.getByLabelText(/descrição/i), 'Ifood')
+    // primeiro muda para Transporte, para provar que a sugestão realmente troca a categoria
+    await userEvent.type(descricao, 'Uber')
+    await userEvent.tab()
+    expect(screen.getByLabelText(/categoria/i)).toHaveValue('Transporte')
+
+    await userEvent.clear(descricao)
+    await userEvent.type(descricao, 'Ifood')
     await userEvent.tab()
 
     expect(screen.getByLabelText(/categoria/i)).toHaveValue('Alimentação')
@@ -145,11 +152,11 @@ describe('TransactionForm - sugestão de categoria', () => {
     await userEvent.type(screen.getByLabelText(/valor/i), '25')
     await userEvent.click(screen.getByRole('button', { name: /adicionar transação/i }))
 
-    await waitFor(() => {
+    await waitFor(() =>
       expect(onAdd).toHaveBeenCalledWith(
         expect.objectContaining({ categoria: 'Lazer' })
       )
-    })
+    )
   })
 })
 
@@ -237,19 +244,20 @@ describe('TransactionForm - edição de transação', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /salvar alterações/i }))
 
-    await waitFor(() => {
-      expect(supabase.from).toHaveBeenCalledWith('id')
-      expect(mockUpdate).toHaveBeenCalledWith({
-        date: '2026-11-10',
-        value: 150,
-        type: 'saida',
-        category: 'Moradia',
-        description: 'Internet Fibra',
-      })
-      expect(mockEq).toHaveBeenCalledWith('id', 123)
-      expect(onAdd).toHaveBeenCalledTimes(1)
-      expect(onCancelarEdicao).toHaveBeenCalledTimes(1)
+    // onCancelarEdicao é a última coisa chamada no handleSubmit,
+    // então quando ele aparece, todo o resto já aconteceu
+    await waitFor(() => expect(onCancelarEdicao).toHaveBeenCalledTimes(1))
+
+    expect(supabase.from).toHaveBeenCalledWith('id')
+    expect(mockUpdate).toHaveBeenCalledWith({
+      date: '2026-11-10',
+      value: 150,
+      type: 'saida',
+      category: 'Moradia',
+      description: 'Internet Fibra',
     })
+    expect(mockEq).toHaveBeenCalledWith('id', 123)
+    expect(onAdd).toHaveBeenCalledTimes(1)
   })
 
   test('limpa o formulário e chama onCancelarEdicao ao clicar em Cancelar edição', async () => {
@@ -266,58 +274,5 @@ describe('TransactionForm - edição de transação', () => {
     expect(onCancelarEdicao).toHaveBeenCalledTimes(1)
     expect(screen.getByLabelText(/descrição/i)).toHaveValue('')
     expect(screen.getByLabelText(/valor/i)).toHaveValue(null)
-  })
-})
-
-describe('TransactionForm - sugestão de categoria', () => {
-  let onAdd
-
-  beforeEach(() => {
-    onAdd = jest.fn()
-    Object.defineProperty(global, 'crypto', {
-      value: { randomUUID: jest.fn(() => 'uuid-fixo') },
-      configurable: true,
-    })
-  })
-
-  test('sugere Transporte ao sair do campo com "Uber"', () => {
-    render(<TransactionForm onAdd={onAdd} />)
-
-    userEvent.type(screen.getByLabelText(/descrição/i), 'Uber')
-    userEvent.tab()
-
-    expect(screen.getByLabelText(/categoria/i)).toHaveValue('Transporte')
-  })
-
-  test('sugere Alimentação ao sair do campo com "Ifood"', () => {
-    render(<TransactionForm onAdd={onAdd} />)
-
-    userEvent.type(screen.getByLabelText(/descrição/i), 'Uber')
-    userEvent.tab()
-    expect(screen.getByLabelText(/categoria/i)).toHaveValue('Transporte')
-
-    userEvent.clear(screen.getByLabelText(/descrição/i))
-    userEvent.type(screen.getByLabelText(/descrição/i), 'Ifood')
-    userEvent.tab()
-
-    expect(screen.getByLabelText(/categoria/i)).toHaveValue('Alimentação')
-  })
-
-  test('a categoria escolhida manualmente é a que vale ao salvar', () => {
-    render(<TransactionForm onAdd={onAdd} />)
-
-    userEvent.type(screen.getByLabelText(/descrição/i), 'Uber')
-    userEvent.tab()
-    userEvent.selectOptions(screen.getByLabelText(/categoria/i), 'Lazer')
-
-    userEvent.click(screen.getByLabelText(/descrição/i))
-    userEvent.tab()
-
-    userEvent.type(screen.getByLabelText(/valor/i), '25')
-    userEvent.click(screen.getByRole('button', { name: /adicionar transação/i }))
-
-    expect(onAdd).toHaveBeenCalledWith(
-      expect.objectContaining({ categoria: 'Lazer' })
-    )
   })
 })

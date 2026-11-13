@@ -12,29 +12,24 @@ pipeline {
         timestamps()
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '10'))
-         timeout(time: 40, unit: 'MINUTES')
+        timeout(time: 40, unit: 'MINUTES')
     }
 
     environment {
-        APP_DIR = 'rastreador-financeiro'
-        CI      = 'true'
-        IMAGE   = 'renata1821/rastreador-financeiro'
+        APP_DIR    = 'rastreador-financeiro'
+        CI         = 'true'
+        IMAGE      = 'renata1821/rastreador-financeiro'
+
+        // AJUSTE estes dois se você já usava outros valores
+        DEPLOY_DIR = 'C:\\deploy\\rastreador-financeiro'
+        APP_PORT   = '3000'
+
+        // Credenciais do tipo "Secret text" criadas no Jenkins
+        REACT_APP_SUPABASE_URL      = credentials('supabase-url')
+        REACT_APP_SUPABASE_ANON_KEY = credentials('supabase-anon-key')
     }
 
     stages {
-       stage('Testes') {
-       steps {
-        dir(env.APP_DIR) {
-         bat 'npm run test:ci'
-           }
-       }
-            post {
-                success {
-                    archiveArtifacts artifacts: "${APP_DIR}/build/**", fingerprint: true
-                }
-            }
-        }
-
         stage('Testes') {
             steps {
                 dir(env.APP_DIR) {
@@ -59,6 +54,22 @@ pipeline {
             }
         }
 
+        stage('Build') {
+            steps {
+                dir(env.APP_DIR) {
+                    // CI=false: senão o CRA trata warnings do ESLint como erro no build
+                    withEnv(['CI=false']) {
+                        bat 'npm run build'
+                    }
+                }
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: "${APP_DIR}/build/**", fingerprint: true
+                }
+            }
+        }
+
         stage('Publicar imagem') {
             when { branch 'main' }
             steps {
@@ -67,7 +78,10 @@ pipeline {
                                                       usernameVariable: 'DH_USER',
                                                       passwordVariable: 'DH_PASS')]) {
                         bat '''
-                            docker build -t %IMAGE%:%BUILD_NUMBER% -t %IMAGE%:latest .
+                            docker build ^
+                              --build-arg REACT_APP_SUPABASE_URL=%REACT_APP_SUPABASE_URL% ^
+                              --build-arg REACT_APP_SUPABASE_ANON_KEY=%REACT_APP_SUPABASE_ANON_KEY% ^
+                              -t %IMAGE%:%BUILD_NUMBER% -t %IMAGE%:latest .
                             echo %DH_PASS%| docker login -u %DH_USER% --password-stdin
                             docker push %IMAGE%:%BUILD_NUMBER%
                             docker push %IMAGE%:latest
@@ -104,7 +118,7 @@ pipeline {
     }
 
     post {
-        success { echo "Imagem publicada em docker.io/${IMAGE}:latest" }
+        success { echo "Pipeline concluído com sucesso." }
         failure { echo 'Pipeline falhou - verifique o stage destacado.' }
     }
 }
