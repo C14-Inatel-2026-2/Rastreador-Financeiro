@@ -1,6 +1,7 @@
-import './Dashboard.css' 
+import './Dashboard.css'
 import GraficoGastos from './GraficoGastos'
 import Transactionform from './Transactionform'
+import LimiteForm from './/LimiteForm'
 import { useState, useEffect } from 'react'
 import { agruparPorCategoria, filtrarPorPeriodo } from './utils'
 import { supabase } from '../services/supabaseClient'
@@ -10,7 +11,22 @@ const MESES = [
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ]
 
-export default function Dashboard(){
+const TABELA = 'id'
+
+function formatarReais(valor) {
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function normalizarTipo(tipo) {
+    const t = String(tipo || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim()
+    return t.startsWith('en') ? 'entrada' : 'saida'
+}
+
+export default function Dashboard() {
     const hoje = new Date()
     const anoAtual = hoje.getFullYear()
     const mesAtual = hoje.getMonth()
@@ -18,44 +34,76 @@ export default function Dashboard(){
     const [transacoes, setTransacoes] = useState([])
     const [filtro, setFiltro] = useState('mes')
     const [mesSelecionado, setMesSelecionado] = useState(mesAtual)
-    const [anoSelecionado, setAnoSelecionado] = useState(anoAtual)
+    const [anoSelecionado] = useState(anoAtual)
     const [loading, setLoading] = useState(true)
 
-    // Função para buscar as transações do Supabase
+    const [limite, setLimite] = useState(null)
+    const [editandoLimite, setEditandoLimite] = useState(false)
+
     async function carregarTransacoes() {
-        setLoading(true)
         const { data, error } = await supabase
-            .from('id') // Nome da tabela no Supabase
+            .from(TABELA)
             .select('*')
             .order('date', { ascending: false })
 
         if (error) {
-            console.error('Erro ao buscar transações do Supabase:', error.message)
+            console.error('Erro ao buscar transações:', error.message)
         } else {
-            const dadosFormatados = (data || []).map(t => ({
+            setTransacoes((data || []).map(t => ({
                 id: t.id,
-                descricao: t.description || t.descricao || 'Sem descrição',
-                valor: Number(t.value || t.valor || 0),
-                tipo: t.type || t.tipo || 'saida',
-                categoria: t.category || t.categoria || 'Outros',
-                data: t.date
-            }))
-            setTransacoes(dadosFormatados)
+                descricao: t.description || 'Sem descrição',
+                valor: Number(t.value || 0),
+                tipo: normalizarTipo(t.type),
+                categoria: t.category || 'Outros',
+                data: String(t.date).slice(0, 10)
+            })))
         }
+    }
+
+    async function carregarLimite() {
+        const { data, error } = await supabase
+            .from('configuracoes')
+            .select('value_limit')
+            .eq('id', 1)
+            .maybeSingle()
+
+        if (error) {
+            console.error('Erro ao buscar limite:', error.message)
+            return
+        }
+        setLimite(data ? Number(data.value_limit) : null)
+    }
+
+    async function carregarTudo() {
+        await Promise.all([carregarTransacoes(), carregarLimite()])
         setLoading(false)
     }
 
     useEffect(() => {
-        carregarTransacoes()
+        carregarTudo()
     }, [])
 
-    function handleAdd(novaTransacao) {
-        setTransacoes((atuais) => [novaTransacao, ...atuais])
-        carregarTransacoes() // Recarrega do banco para garantir sincronia
+    function handleAdd() {
+        carregarTransacoes()
     }
 
-    const transacoesFiltradas = filtrarPorPeriodo(transacoes, filtro, mesSelecionado, anoSelecionado)
+    function handleLimiteSalvo() {
+        setEditandoLimite(false)
+        carregarLimite()
+    }
+
+    const transacoesFiltradas = filtrarPorPeriodo(
+        transacoes,
+        filtro,
+        hoje,
+        { ano: anoSelecionado, mes: mesSelecionado }
+    )
     const dadosGrafico = agruparPorCategoria(transacoesFiltradas)
+
+    const totalGasto = transacoesFiltradas
+        .filter((t) => t.tipo === 'saida')
+        .reduce((soma, t) => soma + t.valor, 0)
+    const limiteExcedido = limite !== null && totalGasto > limite
 
     return (
         <>
@@ -80,16 +128,49 @@ export default function Dashboard(){
                     )}
                 </div>
             </div>
-            
+
+            <div className="limite">
+                <div className="limite-info">
+                    <p>
+                        {limite !== null ? (
+                            <>Limite total de gastos: <strong>{formatarReais(limite)}</strong> · </>
+                        ) : (
+                            <>Nenhum limite definido · </>
+                        )}
+                        Gasto no período: <strong>{formatarReais(totalGasto)}</strong>
+                    </p>
+                    {!editandoLimite && (
+                        <button type="button" onClick={() => setEditandoLimite(true)}>
+                            {limite !== null ? 'Alterar limite' : 'Definir limite'}
+                        </button>
+                    )}
+                </div>
+
+                {limiteExcedido && (
+                    <div className="alerta-limite" role="alert">
+                       Limite de gastos ultrapassado! Você gastou {formatarReais(totalGasto)},
+                        {' '}{formatarReais(totalGasto - limite)} acima do limite de {formatarReais(limite)}.
+                    </div>
+                )}
+            </div>
+
             <div className="grafico">
                 {loading ? (
                     <p style={{ textAlign: 'center', padding: '20px' }}>Carregando dados...</p>
                 ) : (
-                    <GraficoGastos dados={dadosGrafico}/>
+                    <GraficoGastos dados={dadosGrafico} />
                 )}
             </div>
         </div>
+
         <Transactionform onAdd={handleAdd} />
+
+        {editandoLimite && (
+            <LimiteForm
+                onSalvo={handleLimiteSalvo}
+                onCancelar={() => setEditandoLimite(false)}
+            />
+        )}
         </>
     )
 }

@@ -36,3 +36,35 @@
     display: flex;
     gap: 8px;
 }
+/* ---- Limite de gastos (RF08) ---- */
+.limite {
+    margin: 16px 0;
+}
+
+.limite-form,
+.limite-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.limite-info p {
+    margin: 0;
+}
+
+.limite-erro {
+    flex-basis: 100%;
+    margin: 0;
+    color: #b00020;
+}
+
+.alerta-limite {
+    margin-top: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #b00020;
+    background: #fdecea;
+    color: #b00020;
+    font-weight: 600;
+}
