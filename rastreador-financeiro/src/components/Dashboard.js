@@ -3,7 +3,7 @@ import GraficoGastos from './GraficoGastos'
 import Transactionform from './Transactionform'
 import LimiteForm from './LimiteForm'
 import { useState, useEffect } from 'react'
-import { agruparPorCategoria, filtrarPorPeriodo } from './utils'
+import { agruparPorCategoria, filtrarPorPeriodo, formatarReais, calcularTotalGasto, listarAnos } from './utils'
 import { supabase } from '../services/supabaseClient'
 
 const MESES = [
@@ -12,10 +12,6 @@ const MESES = [
 ]
 
 const TABELA = 'id'
-
-function formatarReais(valor) {
-    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
 
 function normalizarTipo(tipo) {
     const t = String(tipo || '')
@@ -115,15 +111,11 @@ function handleEditar(transacao) {
     )
     const dadosGrafico = agruparPorCategoria(transacoesFiltradas)
 
-    const totalGasto = transacoesFiltradas
-        .filter((t) => t.tipo === 'saida')
-        .reduce((soma, t) => soma + t.valor, 0)
+    const totalGasto = calcularTotalGasto(transacoesFiltradas)
+
     const limiteExcedido = limite !== null && totalGasto > limite
 
-    const anos = [...new Set([
-    anoAtual,
-    ...transacoes.map((t) => Number(t.data.slice(0, 4))),
-])].sort((a, b) => b - a)
+    const anos = listarAnos(transacoes, anoAtual)
 
     return (
         <>

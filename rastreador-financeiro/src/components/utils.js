@@ -61,3 +61,18 @@ export function agruparPorCategoria(transacoes) {
         valores: Object.values(totais),
     }
 }
+
+export function formatarReais(valor) {
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+export function calcularTotalGasto(transacoes) {
+    return transacoes
+        .filter((t) => t.tipo === 'saida')
+        .reduce((soma, t) => soma + t.valor, 0)
+}
+
+export function listarAnos(transacoes, anoAtual) {
+    const anos = transacoes.map((t) => Number(t.data.slice(0, 4)))
+    return [...new Set([anoAtual, ...anos])].sort((a, b) => b - a)
+}
