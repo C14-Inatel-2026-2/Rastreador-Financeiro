@@ -20,7 +20,6 @@ function getHoje() {
 export default function Transactionform({ onAdd, transacaoEditando, onCancelarEdicao }) {
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
-  const [limite, setLimite] = useState("");
   const [tipo, setTipo] = useState("saida");
   const [categoria, setCategoria] = useState(CATEGORIAS[0]);
   const [categoriaManual, setCategoriaManual] = useState(false);
@@ -29,22 +28,33 @@ export default function Transactionform({ onAdd, transacaoEditando, onCancelarEd
   const [carregando, setCarregando] = useState(false);
 
   useEffect(() => {
-  if (transacaoEditando) {
-    setDescricao(transacaoEditando.descricao);
-    setValor(String(transacaoEditando.valor));
-    setTipo(transacaoEditando.tipo);
-    setCategoria(transacaoEditando.categoria);
-    setCategoriaManual(true);
-    setData(transacaoEditando.data);
-    setErro("");
-  }
-}, [transacaoEditando]);
+    if (transacaoEditando) {
+      setDescricao(transacaoEditando.descricao);
+      setValor(String(transacaoEditando.valor));
+      setTipo(transacaoEditando.tipo);
+      setCategoria(transacaoEditando.categoria);
+      setCategoriaManual(true);
+      setData(transacaoEditando.data);
+      setErro("");
+    }
+  }, [transacaoEditando]);
 
   function sugerirCategoria(texto) {
-    const t = texto.toLowerCase();
-    if (t.includes("uber") || t.includes("onibus") || t.includes("gasolina")) return "Transporte";
-    if (t.includes("mercado") || t.includes("supermercado") || t.includes("comida")) return "Alimentação";
-    if (t.includes("salario") || t.includes("pix") || t.includes("recebimento")) return "Salário";
+    // ignora maiúsculas e acentos ("Salário" -> "salario", "Ônibus" -> "onibus")
+    const t = texto
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    const regras = [
+      ["Transporte", ["uber", "onibus", "gasolina"]],
+      ["Alimentação", ["mercado", "supermercado", "comida", "ifood", "restaurante", "lanche"]],
+      ["Salário", ["salario", "pix", "recebimento"]],
+    ];
+
+    for (const [nomeCategoria, palavras] of regras) {
+      if (palavras.some((p) => t.includes(p))) return nomeCategoria;
+    }
     return null;
   }
 
@@ -58,7 +68,6 @@ export default function Transactionform({ onAdd, transacaoEditando, onCancelarEd
   function limparFormulario() {
     setDescricao("");
     setValor("");
-    setLimite("");
     setTipo("saida");
     setCategoria(CATEGORIAS[0]);
     setCategoriaManual(false);
@@ -69,7 +78,6 @@ export default function Transactionform({ onAdd, transacaoEditando, onCancelarEd
     event.preventDefault();
 
     const valorNumerico = Number(valor);
-    const limiteNumerico = limite ? Number(limite) : null;
 
     if (!descricao.trim()) {
       setErro("Informe uma descrição.");
@@ -94,7 +102,6 @@ export default function Transactionform({ onAdd, transacaoEditando, onCancelarEd
         type: tipo,
         category: categoria,
         description: descricao.trim(),
-        
       };
 
       let resultado;
@@ -148,7 +155,7 @@ export default function Transactionform({ onAdd, transacaoEditando, onCancelarEd
     <form className="transaction-form" onSubmit={handleSubmit}>
       <h2 className="transaction-form__title">
         {transacaoEditando ? "Editar transação" : "Nova transação"}
-    </h2>
+      </h2>
 
       <div className="transaction-form__field">
         <label htmlFor="descricao">Descrição</label>
@@ -175,7 +182,6 @@ export default function Transactionform({ onAdd, transacaoEditando, onCancelarEd
             onChange={(e) => setValor(e.target.value)}
           />
         </div>
-
 
         <div className="transaction-form__field">
           <label htmlFor="data">Data</label>
