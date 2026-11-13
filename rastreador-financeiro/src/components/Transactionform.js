@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../services/supabaseClient";
+import './Transactionform.css'
 
 const CATEGORIAS = [
   "Alimentação",
@@ -16,7 +17,7 @@ function getHoje() {
   return new Date().toISOString().split("T")[0];
 }
 
-export default function Transactionform({ onAdd, mostrarCampoLimite = true }) {
+export default function Transactionform({ onAdd, transacaoEditando, onCancelarEdicao }) {
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [limite, setLimite] = useState("");
@@ -26,6 +27,18 @@ export default function Transactionform({ onAdd, mostrarCampoLimite = true }) {
   const [data, setData] = useState(getHoje());
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
+
+  useEffect(() => {
+  if (transacaoEditando) {
+    setDescricao(transacaoEditando.descricao);
+    setValor(String(transacaoEditando.valor));
+    setTipo(transacaoEditando.tipo);
+    setCategoria(transacaoEditando.categoria);
+    setCategoriaManual(true);
+    setData(transacaoEditando.data);
+    setErro("");
+  }
+}, [transacaoEditando]);
 
   function sugerirCategoria(texto) {
     const t = texto.toLowerCase();
@@ -81,13 +94,25 @@ export default function Transactionform({ onAdd, mostrarCampoLimite = true }) {
         type: tipo,
         category: categoria,
         description: descricao.trim(),
+        
       };
 
+      let resultado;
 
-      const { data: dadosInseridos, error } = await supabase
-        .from("id")
-        .insert([novaTransacaoSupabase])
-        .select();
+      if (transacaoEditando) {
+        resultado = await supabase
+          .from("id")
+          .update(novaTransacaoSupabase)
+          .eq("id", transacaoEditando.id)
+          .select();
+      } else {
+        resultado = await supabase
+          .from("id")
+          .insert([novaTransacaoSupabase])
+          .select();
+      }
+
+      const { data: dadosInseridos, error } = resultado;
 
       if (error) {
         throw error;
@@ -107,6 +132,10 @@ export default function Transactionform({ onAdd, mostrarCampoLimite = true }) {
       }
 
       limparFormulario();
+
+      if (transacaoEditando && onCancelarEdicao) {
+        onCancelarEdicao();
+      }
     } catch (err) {
       console.error("Erro ao salvar:", err.message);
       setErro("Erro ao salvar no banco de dados: " + err.message);
@@ -117,7 +146,9 @@ export default function Transactionform({ onAdd, mostrarCampoLimite = true }) {
 
   return (
     <form className="transaction-form" onSubmit={handleSubmit}>
-      <h2 className="transaction-form__title">Nova transação</h2>
+      <h2 className="transaction-form__title">
+        {transacaoEditando ? "Editar transação" : "Nova transação"}
+    </h2>
 
       <div className="transaction-form__field">
         <label htmlFor="descricao">Descrição</label>
@@ -200,8 +231,20 @@ export default function Transactionform({ onAdd, mostrarCampoLimite = true }) {
       {erro && <p className="transaction-form__erro">{erro}</p>}
 
       <button type="submit" className="transaction-form__submit" disabled={carregando}>
-        {carregando ? "Salvando..." : "Adicionar transação"}
+        {carregando ? "Salvando..." : transacaoEditando ? "Salvar alterações" : "Adicionar transação"}
       </button>
+
+      {transacaoEditando && (
+        <button
+          type="button"
+          onClick={() => {
+            limparFormulario();
+            onCancelarEdicao();
+          }}
+        >
+          Cancelar edição
+        </button>
+      )}
     </form>
   );
 }

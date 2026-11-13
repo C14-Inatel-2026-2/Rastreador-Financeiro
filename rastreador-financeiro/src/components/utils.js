@@ -22,14 +22,18 @@ export function obterIntervalo(filtro, agora = new Date(), mesEscolhido = null) 
         if (mesEscolhido) {
             const inicio = new Date(mesEscolhido.ano, mesEscolhido.mes, 1)
             const fimMes = new Date(mesEscolhido.ano, mesEscolhido.mes + 1, 0, 23, 59, 59, 999)
-            // não inclui dias futuros quando o mês escolhido é o atual
             return { inicio, fim: fimMes < fimHoje ? fimMes : fimHoje }
         }
         return { inicio: subtrairMeses(hoje, 1), fim: fimHoje }
     }
     if (filtro === 'ano') {
-        return { inicio: subtrairMeses(hoje, 12), fim: fimHoje }
+    if (mesEscolhido) {
+        const inicio = new Date(mesEscolhido.ano, 0, 1)
+        const fimAno = new Date(mesEscolhido.ano, 11, 31, 23, 59, 59, 999)
+        return { inicio, fim: fimAno < fimHoje ? fimAno : fimHoje }
     }
+    return { inicio: subtrairMeses(hoje, 12), fim: fimHoje }
+}
     return null
 }
 

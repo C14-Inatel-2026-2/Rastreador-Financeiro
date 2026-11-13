@@ -1,7 +1,7 @@
 import './Dashboard.css'
 import GraficoGastos from './GraficoGastos'
 import Transactionform from './Transactionform'
-import LimiteForm from './/LimiteForm'
+import LimiteForm from './LimiteForm'
 import { useState, useEffect } from 'react'
 import { agruparPorCategoria, filtrarPorPeriodo } from './utils'
 import { supabase } from '../services/supabaseClient'
@@ -34,9 +34,9 @@ export default function Dashboard() {
     const [transacoes, setTransacoes] = useState([])
     const [filtro, setFiltro] = useState('mes')
     const [mesSelecionado, setMesSelecionado] = useState(mesAtual)
-    const [anoSelecionado] = useState(anoAtual)
+    const [anoSelecionado, setAnoSelecionado] = useState(anoAtual)
     const [loading, setLoading] = useState(true)
-
+    const [transacaoEditando, setTransacaoEditando] = useState(null)
     const [limite, setLimite] = useState(null)
     const [editandoLimite, setEditandoLimite] = useState(false)
 
@@ -92,6 +92,21 @@ export default function Dashboard() {
         carregarLimite()
     }
 
+    async function handleExcluir(id) {
+    if (!window.confirm('Deseja excluir esta transação?')) return
+
+    const { error } = await supabase.from(TABELA).delete().eq('id', id)
+
+    if (error) {
+        alert('Erro ao excluir: ' + error.message)
+        return
+    }
+    carregarTransacoes()
+}
+
+function handleEditar(transacao) {
+    setTransacaoEditando(transacao)
+}
     const transacoesFiltradas = filtrarPorPeriodo(
         transacoes,
         filtro,
@@ -104,6 +119,11 @@ export default function Dashboard() {
         .filter((t) => t.tipo === 'saida')
         .reduce((soma, t) => soma + t.valor, 0)
     const limiteExcedido = limite !== null && totalGasto > limite
+
+    const anos = [...new Set([
+    anoAtual,
+    ...transacoes.map((t) => Number(t.data.slice(0, 4))),
+])].sort((a, b) => b - a)
 
     return (
         <>
@@ -123,6 +143,14 @@ export default function Dashboard() {
                         <select value={mesSelecionado} onChange={(e) => setMesSelecionado(Number(e.target.value))}>
                             {MESES.map((mes, index) => (
                                 <option key={index} value={index}>{mes}</option>
+                            ))}
+                        </select>
+                    )}
+
+                    {(filtro === 'mes' || filtro === 'ano') && (
+                        <select value={anoSelecionado} onChange={(e) => setAnoSelecionado(Number(e.target.value))}>
+                            {anos.map((ano) => (
+                                <option key={ano} value={ano}>{ano}</option>
                             ))}
                         </select>
                     )}
@@ -161,9 +189,34 @@ export default function Dashboard() {
                     <GraficoGastos dados={dadosGrafico} />
                 )}
             </div>
+            <div className="lista-transacoes">
+                <h2>Transações</h2>
+                {transacoesFiltradas.length === 0 ? (
+                    <p>Nenhuma transação no período.</p>
+                ) : (
+                    <ul>
+                        {transacoesFiltradas.map((t) => (
+                            <li key={t.id}>
+                                <span>{t.data.split('-').reverse().join('/')}</span>
+                                <span>{t.descricao}</span>
+                                <span>{t.categoria}</span>
+                                <strong className={t.tipo}>
+                                    {t.tipo === 'saida' ? '-' : '+'} {formatarReais(t.valor)}
+                                </strong>
+                                <button type="button" onClick={() => handleEditar(t)}>Editar</button>
+                                <button type="button" onClick={() => handleExcluir(t.id)}>Excluir</button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
         </div>
 
-        <Transactionform onAdd={handleAdd} />
+        <Transactionform
+            onAdd={handleAdd}
+            transacaoEditando={transacaoEditando}
+            onCancelarEdicao={() => setTransacaoEditando(null)}
+        />
 
         {editandoLimite && (
             <LimiteForm
