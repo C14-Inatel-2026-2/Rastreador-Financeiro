@@ -1,6 +1,5 @@
 import logo from './logo (2).png';
 import './App.css';
-import TransactionForm from './components/Transactionform';
 import Dashboard from './components/Dashboard';
 
 function App() {

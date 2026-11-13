@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -18,7 +19,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "test:ci": "react-scripts test --watchAll=false --ci --coverage --reporters=default --reporters=jest-junit"
   },
   "eslintConfig": {
     "extends": [
@@ -37,5 +39,27 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/index.js",
+      "!src/reportWebVitals.js",
+      "!src/setupTests.js",
+      "!src/**/__tests__/**"
+    ],
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "cobertura",
+      "html"
+    ]
+  },
+  "jest-junit": {
+    "outputDirectory": "reports",
+    "outputName": "junit.xml"
+  },
+  "devDependencies": {
+    "jest-junit": "^17.0.0"
   }
 }

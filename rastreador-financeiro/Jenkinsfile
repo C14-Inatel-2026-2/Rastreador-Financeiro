@@ -1,0 +1,110 @@
+pipeline {
+    agent {
+        node {
+            label ''
+            customWorkspace "C:\\jw\\rastreador-${env.BRANCH_NAME.replace('/', '-')}"
+        }
+    }
+
+    tools { nodejs 'node20' }
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+         timeout(time: 40, unit: 'MINUTES')
+    }
+
+    environment {
+        APP_DIR = 'rastreador-financeiro'
+        CI      = 'true'
+        IMAGE   = 'renata1821/rastreador-financeiro'
+    }
+
+    stages {
+       stage('Testes') {
+       steps {
+        dir(env.APP_DIR) {
+         bat 'npm run test:ci'
+           }
+       }
+            post {
+                success {
+                    archiveArtifacts artifacts: "${APP_DIR}/build/**", fingerprint: true
+                }
+            }
+        }
+
+        stage('Testes') {
+            steps {
+                dir(env.APP_DIR) {
+                    bat 'npm ci --no-audit --no-fund'
+                    bat 'npm run test:ci'
+                }
+            }
+            post {
+                always {
+                    junit testResults: "${APP_DIR}/reports/junit.xml"
+                    recordCoverage(
+                        tools: [[parser: 'COBERTURA', pattern: "${APP_DIR}/coverage/cobertura-coverage.xml"]]
+                    )
+                    publishHTML(target: [
+                        reportDir: "${APP_DIR}/coverage/lcov-report",
+                        reportFiles: 'index.html',
+                        reportName: 'Cobertura de Testes',
+                        keepAll: true,
+                        alwaysLinkToLastBuild: true
+                    ])
+                }
+            }
+        }
+
+        stage('Publicar imagem') {
+            when { branch 'main' }
+            steps {
+                dir(env.APP_DIR) {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub',
+                                                      usernameVariable: 'DH_USER',
+                                                      passwordVariable: 'DH_PASS')]) {
+                        bat '''
+                            docker build -t %IMAGE%:%BUILD_NUMBER% -t %IMAGE%:latest .
+                            echo %DH_PASS%| docker login -u %DH_USER% --password-stdin
+                            docker push %IMAGE%:%BUILD_NUMBER%
+                            docker push %IMAGE%:latest
+                            docker logout
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            when { branch 'main' }
+            steps {
+                bat '''
+                    if not exist "%DEPLOY_DIR%" mkdir "%DEPLOY_DIR%"
+                    robocopy "%APP_DIR%\\build" "%DEPLOY_DIR%" /MIR /NFL /NDL /NJH /NJS
+                    if %ERRORLEVEL% GEQ 8 exit /b 1
+                    exit /b 0
+                '''
+
+                bat '''
+                    for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":%APP_PORT%" ^| findstr LISTENING') do taskkill /F /PID %%a
+                    exit /b 0
+                '''
+
+                withEnv(['JENKINS_NODE_COOKIE=dontKillMe', 'BUILD_ID=dontKillMe']) {
+                    bat '''
+                        start "" /B cmd /c "npx --yes serve -s "%DEPLOY_DIR%" -l %APP_PORT% > nul 2>&1"
+                        exit /b 0
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success { echo "Imagem publicada em docker.io/${IMAGE}:latest" }
+        failure { echo 'Pipeline falhou - verifique o stage destacado.' }
+    }
+}
