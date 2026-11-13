@@ -16,7 +16,7 @@ function getHoje() {
   return new Date().toISOString().split("T")[0];
 }
 
-export default function Transactionform({ onAdd }) {
+export default function Transactionform({ onAdd, mostrarCampoLimite = true }) {
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [limite, setLimite] = useState("");
@@ -78,7 +78,6 @@ export default function Transactionform({ onAdd }) {
       const novaTransacaoSupabase = {
         date: data,
         value: valorNumerico,
-        value_limit: limiteNumerico,
         type: tipo,
         category: categoria,
         description: descricao.trim(),
@@ -146,18 +145,6 @@ export default function Transactionform({ onAdd }) {
           />
         </div>
 
-        <div className="transaction-form__field">
-          <label htmlFor="limite">Limite de gastos</label>
-          <input
-            id="limite"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="0,00"
-            value={limite}
-            onChange={(e) => setLimite(e.target.value)}
-          />
-        </div>
 
         <div className="transaction-form__field">
           <label htmlFor="data">Data</label>

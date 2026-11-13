@@ -1,8 +1,6 @@
 import { supabase } from '../services/supabaseClient';
 
-// Função para buscar e filtrar transações
 export async function getFilteredTransactions({ tipo, dataInicial, dataFinal }) {
-  // ATENÇÃO: Mudamos para 'id' que é o nome real da tabela no seu Supabase
   let query = supabase
     .from('id')
     .select('*')
