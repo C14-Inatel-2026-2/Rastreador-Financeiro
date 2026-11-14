@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "../services/supabaseClient";
+import './Transactionform.css'
+import { sugerirCategoria } from "./utils";
 
 const CATEGORIAS = [
   "Alimentação",
@@ -15,23 +18,46 @@ function getHoje() {
   return new Date().toISOString().split("T")[0];
 }
 
-export default function TransactionForm({ onAdd }) {
+export default function Transactionform({ onAdd, transacaoEditando, onCancelarEdicao }) {
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [tipo, setTipo] = useState("saida");
   const [categoria, setCategoria] = useState(CATEGORIAS[0]);
+  const [categoriaManual, setCategoriaManual] = useState(false);
   const [data, setData] = useState(getHoje());
   const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
+
+  useEffect(() => {
+    if (transacaoEditando) {
+      setDescricao(transacaoEditando.descricao);
+      setValor(String(transacaoEditando.valor));
+      setTipo(transacaoEditando.tipo);
+      setCategoria(transacaoEditando.categoria);
+      setCategoriaManual(true);
+      setData(transacaoEditando.data);
+      setErro("");
+    }
+  }, [transacaoEditando]);
+
+
+  function handleDescricaoBlur() {
+    const sugerida = sugerirCategoria(descricao);
+    if (sugerida && !categoriaManual) {
+      setCategoria(sugerida);
+    }
+  }
 
   function limparFormulario() {
     setDescricao("");
     setValor("");
     setTipo("saida");
     setCategoria(CATEGORIAS[0]);
+    setCategoriaManual(false);
     setData(getHoje());
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     const valorNumerico = Number(valor);
@@ -50,23 +76,69 @@ export default function TransactionForm({ onAdd }) {
     }
 
     setErro("");
+    setCarregando(true);
 
-    const novaTransacao = {
-      id: crypto.randomUUID(),
-      descricao: descricao.trim(),
-      valor: valorNumerico,
-      tipo,
-      categoria,
-      data,
-    };
+    try {
+      const novaTransacaoSupabase = {
+        date: data,
+        value: valorNumerico,
+        type: tipo,
+        category: categoria,
+        description: descricao.trim(),
+      };
 
-    onAdd(novaTransacao);
-    limparFormulario();
+      let resultado;
+
+      if (transacaoEditando) {
+        resultado = await supabase
+          .from("id")
+          .update(novaTransacaoSupabase)
+          .eq("id", transacaoEditando.id)
+          .select();
+      } else {
+        resultado = await supabase
+          .from("id")
+          .insert([novaTransacaoSupabase])
+          .select();
+      }
+
+      const { data: dadosInseridos, error } = resultado;
+
+      if (error) {
+        throw error;
+      }
+
+      const transacaoCriada = dadosInseridos ? dadosInseridos[0] : novaTransacaoSupabase;
+
+      if (onAdd) {
+        onAdd({
+          id: transacaoCriada.id || crypto.randomUUID(),
+          descricao: transacaoCriada.description,
+          valor: transacaoCriada.value,
+          tipo: transacaoCriada.type,
+          categoria: transacaoCriada.category,
+          data: transacaoCriada.date,
+        });
+      }
+
+      limparFormulario();
+
+      if (transacaoEditando && onCancelarEdicao) {
+        onCancelarEdicao();
+      }
+    } catch (err) {
+      console.error("Erro ao salvar:", err.message);
+      setErro("Erro ao salvar no banco de dados: " + err.message);
+    } finally {
+      setCarregando(false);
+    }
   }
 
   return (
     <form className="transaction-form" onSubmit={handleSubmit}>
-      <h2 className="transaction-form__title">Nova transação</h2>
+      <h2 className="transaction-form__title">
+        {transacaoEditando ? "Editar transação" : "Nova transação"}
+      </h2>
 
       <div className="transaction-form__field">
         <label htmlFor="descricao">Descrição</label>
@@ -76,6 +148,7 @@ export default function TransactionForm({ onAdd }) {
           placeholder="Ex: Supermercado, Salário..."
           value={descricao}
           onChange={(e) => setDescricao(e.target.value)}
+          onBlur={handleDescricaoBlur}
         />
       </div>
 
@@ -110,7 +183,10 @@ export default function TransactionForm({ onAdd }) {
           <select
             id="categoria"
             value={categoria}
-            onChange={(e) => setCategoria(e.target.value)}
+            onChange={(e) => {
+              setCategoria(e.target.value);
+              setCategoriaManual(true);
+            }}
           >
             {CATEGORIAS.map((cat) => (
               <option key={cat} value={cat}>
@@ -143,9 +219,21 @@ export default function TransactionForm({ onAdd }) {
 
       {erro && <p className="transaction-form__erro">{erro}</p>}
 
-      <button type="submit" className="transaction-form__submit">
-        Adicionar transação
+      <button type="submit" className="transaction-form__submit" disabled={carregando}>
+        {carregando ? "Salvando..." : transacaoEditando ? "Salvar alterações" : "Adicionar transação"}
       </button>
+
+      {transacaoEditando && (
+        <button
+          type="button"
+          onClick={() => {
+            limparFormulario();
+            onCancelarEdicao();
+          }}
+        >
+          Cancelar edição
+        </button>
+      )}
     </form>
   );
 }

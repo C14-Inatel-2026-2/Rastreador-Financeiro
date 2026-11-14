@@ -70,6 +70,7 @@ describe('TransactionForm - com mock', () => {
     await userEvent.click(screen.getByRole('button', { name: /adicionar transação/i }))
 
     await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(1))
+
     expect(onAdd).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'uuid-fixo',
@@ -88,7 +89,10 @@ describe('TransactionForm - com mock', () => {
     await userEvent.type(screen.getByLabelText(/valor/i), '8')
     await userEvent.click(screen.getByRole('button', { name: /adicionar transação/i }))
 
-    await waitFor(() => expect(screen.getByLabelText(/descrição/i)).toHaveValue(''))
+    await waitFor(() =>
+      expect(screen.getByLabelText(/descrição/i)).toHaveValue('')
+    )
+
     expect(screen.getByLabelText(/valor/i)).toHaveValue(null)
   })
 })
@@ -124,8 +128,15 @@ describe('TransactionForm - sugestão de categoria', () => {
 
   test('sugere Alimentação ao sair do campo com "Ifood"', async () => {
     render(<TransactionForm onAdd={onAdd} />)
+    const descricao = screen.getByLabelText(/descrição/i)
 
-    await userEvent.type(screen.getByLabelText(/descrição/i), 'Ifood')
+    // primeiro muda para Transporte, para provar que a sugestão realmente troca a categoria
+    await userEvent.type(descricao, 'Uber')
+    await userEvent.tab()
+    expect(screen.getByLabelText(/categoria/i)).toHaveValue('Transporte')
+
+    await userEvent.clear(descricao)
+    await userEvent.type(descricao, 'Ifood')
     await userEvent.tab()
 
     expect(screen.getByLabelText(/categoria/i)).toHaveValue('Alimentação')
@@ -141,11 +152,11 @@ describe('TransactionForm - sugestão de categoria', () => {
     await userEvent.type(screen.getByLabelText(/valor/i), '25')
     await userEvent.click(screen.getByRole('button', { name: /adicionar transação/i }))
 
-    await waitFor(() => {
+    await waitFor(() =>
       expect(onAdd).toHaveBeenCalledWith(
         expect.objectContaining({ categoria: 'Lazer' })
       )
-    })
+    )
   })
 })
 
@@ -233,7 +244,10 @@ describe('TransactionForm - edição de transação', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /salvar alterações/i }))
 
-    await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(1))
+    // onCancelarEdicao é a última coisa chamada no handleSubmit,
+    // então quando ele aparece, todo o resto já aconteceu
+    await waitFor(() => expect(onCancelarEdicao).toHaveBeenCalledTimes(1))
+
     expect(supabase.from).toHaveBeenCalledWith('id')
     expect(mockUpdate).toHaveBeenCalledWith({
       date: '2026-11-10',
@@ -243,7 +257,7 @@ describe('TransactionForm - edição de transação', () => {
       description: 'Internet Fibra',
     })
     expect(mockEq).toHaveBeenCalledWith('id', 123)
-    expect(onCancelarEdicao).toHaveBeenCalledTimes(1)
+    expect(onAdd).toHaveBeenCalledTimes(1)
   })
 
   test('limpa o formulário e chama onCancelarEdicao ao clicar em Cancelar edição', async () => {
