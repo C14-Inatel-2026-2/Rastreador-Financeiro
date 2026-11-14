@@ -216,7 +216,38 @@ Resposta da IA: uma lista de transações que alterava apenas o estado local (us
 Decisão: descartada. O projeto já tinha passado a usar o Supabase, então editar e excluir precisavam alterar o banco.
 
 #### Renata
+ 
+### 1. Análise do log do build #4 do Jenkins
+**Prompt** (com o log em anexo):
+> "O build #4 do Jenkins terminou com falha. Segue o log; qual foi a causa?" 
 
+Resposta da IA: constatou que o stage "Publicar imagem" funcionou (push das tags `4` e `latest`) e que a falha foi o timeout de 20 minutos, causado pelo `npm ci` executado duas vezes. Sugeriu remover a repetição e aumentar o timeout. 
+
+Decisão: Aceita.
+ 
+### 2. Erro `agora.getFullYear is not a function`
+**Prompt**:
+> "Ao executar a aplicação, ocorre o erro `agora.getFullYear is not a function`. Segue o código do Dashboard. Como corrigir?" 
+
+Resposta da IA: identificou que o `Dashboard` passava `mesSelecionado` como terceiro argumento de `filtrarPorPeriodo`, que espera uma data; corrigiu a chamada para `(transacoes, filtro, hoje, { ano, mes })`, removeu o `setAnoSelecionado` sem uso e entregou as alterações.
+
+Decisão: Aceita.
+ 
+### 3. Acesso ao Jenkins e credencial do Docker Hub
+**Prompt:**
+> "Não estou conseguindo acessar a interface do Jenkins que utilizei na entrega anterior, não esta encontrando o Jenkins na maquina. Como iniciá-lo novamente? Além disso, o que é o token solicitado para a credencial `dockerhub`?" 
+
+Resposta da IA: orientou a localizar o `jenkins.war` e iniciá-lo com `java -jar`; explicou o Access Token do Docker Hub e como criar a credencial `dockerhub` (usuário e senha) no Jenkins. 
+
+Decisão: Aceita. 
+
+### 4. Gráfico e total não atualizam após cadastrar transações
+**Prompt** :
+> "Os dados chegam ao Supabase, mas o gráfico e o valor do cálculo não refletem as alterações das transações. Qual pode ser a causa?"
+
+Resposta da IA: listou causas prováveis (nome da tabela, nomes das colunas, ausência de policy de `SELECT` no RLS, chamada do `onAdd`) e sugeriu logs de diagnóstico. A primeira hipótese (formato do campo `tipo`) estava errada, pois o formulário já gravava `'saida'`, e foi corrigida ao analisar o `Transactionform`. Sugeriu também recarregar do banco após cadastrar e criar a policy de leitura.
+
+Decisão:  : Aceita, o formato estava errado
 
 ## Refactorings
 
