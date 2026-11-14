@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../services/supabaseClient";
 import './Transactionform.css'
+import { sugerirCategoria } from "./utils";
 
 const CATEGORIAS = [
   "Alimentação",
@@ -39,24 +40,6 @@ export default function Transactionform({ onAdd, transacaoEditando, onCancelarEd
     }
   }, [transacaoEditando]);
 
-  function sugerirCategoria(texto) {
-    // ignora maiúsculas e acentos ("Salário" -> "salario", "Ônibus" -> "onibus")
-    const t = texto
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
-
-    const regras = [
-      ["Transporte", ["uber", "onibus", "gasolina"]],
-      ["Alimentação", ["mercado", "supermercado", "comida", "ifood", "restaurante", "lanche"]],
-      ["Salário", ["salario", "pix", "recebimento"]],
-    ];
-
-    for (const [nomeCategoria, palavras] of regras) {
-      if (palavras.some((p) => t.includes(p))) return nomeCategoria;
-    }
-    return null;
-  }
 
   function handleDescricaoBlur() {
     const sugerida = sugerirCategoria(descricao);
