@@ -55,11 +55,20 @@ O app abre em [http://localhost:3000](http://localhost:3000). Para rodar os test
 
 Esta seção registra as melhorias de código feitas sem alterar o comportamento do app. Cada refactoring é feito em uma branch própria (`refactor/...`), com testes passando antes do commit e conferência manual da tela. Para cada um são indicados o smell encontrado, o refactoring aplicado, o motivo e o link do pull request.
 
-### 1. Regras de cálculo e formatação dentro do Dashboard
+#### Regras de cálculo e formatação dentro do Dashboard
 
 - **Smell:** Long Method / Large Component. O `Dashboard.js` misturava a tela com contas (total gasto, lista de anos) e com a formatação de valores em reais.
 - **Refactoring aplicado:** Extract Function. As funções `formatarReais`, `calcularTotalGasto` e `listarAnos` foram movidas para o `utils.js`, e o `Dashboard.js` passou a chamá-las.
 - **Por quê:** atende o RNF04 (regras de cálculo em funções próprias), deixa o componente mais curto e permite testar as contas sem renderizar a tela. Foram adicionados testes dessas funções em `utils.test.js`.
+- **PR:** https://github.com/C14-Inatel-2026-2/Rastreador-Financeiro/pull/29
+
+### Filtro de período dentro do Dashboard
+ 
+- **Smell:** Long Method (JSX longo) e regra de exibição escondida no meio da tela. Os três selects (semana/mês/ano, mês e ano) e a condição de quando cada um aparece ficavam misturados com o resto do `Dashboard.js`.
+- **Refactoring aplicado:** Extract Component. Foi criado `FiltroPeriodo.js`, que recebe o filtro, o mês, o ano e suas funções de alteração por props. A constante `MESES` foi para dentro dele.
+- **Por quê:** a regra de qual select aparece em cada filtro (RF05) fica em um só lugar, e o `Dashboard.js` só liga o componente ao estado.
+- **PR:** https://github.com/C14-Inatel-2026-2/Rastreador-Financeiro/pull/31
+
 
 ## Organização do projeto
 
