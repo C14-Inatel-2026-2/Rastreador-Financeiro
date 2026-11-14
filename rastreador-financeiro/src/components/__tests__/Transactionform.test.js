@@ -69,18 +69,16 @@ describe('TransactionForm - com mock', () => {
     await userEvent.click(screen.getByRole('button', { name: /entrada/i }))
     await userEvent.click(screen.getByRole('button', { name: /adicionar transação/i }))
 
-    await waitFor(() => {
-      expect(onAdd).toHaveBeenCalledTimes(1)
-      expect(onAdd).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: 'uuid-fixo',
-          descricao: 'Supermercado',
-          valor: 45.9,
-          tipo: 'entrada',
-          categoria: 'Lazer',
-        })
-      )
-    })
+    await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(1))
+    expect(onAdd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'uuid-fixo',
+        descricao: 'Supermercado',
+        valor: 45.9,
+        tipo: 'entrada',
+        categoria: 'Lazer',
+      })
+    )
   })
 
   test('limpa o formulário após adicionar', async () => {
@@ -90,10 +88,8 @@ describe('TransactionForm - com mock', () => {
     await userEvent.type(screen.getByLabelText(/valor/i), '8')
     await userEvent.click(screen.getByRole('button', { name: /adicionar transação/i }))
 
-    await waitFor(() => {
-      expect(screen.getByLabelText(/descrição/i)).toHaveValue('')
-      expect(screen.getByLabelText(/valor/i)).toHaveValue(null)
-    })
+    await waitFor(() => expect(screen.getByLabelText(/descrição/i)).toHaveValue(''))
+    expect(screen.getByLabelText(/valor/i)).toHaveValue(null)
   })
 })
 
@@ -237,19 +233,17 @@ describe('TransactionForm - edição de transação', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /salvar alterações/i }))
 
-    await waitFor(() => {
-      expect(supabase.from).toHaveBeenCalledWith('id')
-      expect(mockUpdate).toHaveBeenCalledWith({
-        date: '2026-11-10',
-        value: 150,
-        type: 'saida',
-        category: 'Moradia',
-        description: 'Internet Fibra',
-      })
-      expect(mockEq).toHaveBeenCalledWith('id', 123)
-      expect(onAdd).toHaveBeenCalledTimes(1)
-      expect(onCancelarEdicao).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(1))
+    expect(supabase.from).toHaveBeenCalledWith('id')
+    expect(mockUpdate).toHaveBeenCalledWith({
+      date: '2026-11-10',
+      value: 150,
+      type: 'saida',
+      category: 'Moradia',
+      description: 'Internet Fibra',
     })
+    expect(mockEq).toHaveBeenCalledWith('id', 123)
+    expect(onCancelarEdicao).toHaveBeenCalledTimes(1)
   })
 
   test('limpa o formulário e chama onCancelarEdicao ao clicar em Cancelar edição', async () => {
