@@ -12,6 +12,55 @@ Estão em desenvolvimento as seguintes funcionalidades adicionais:
 - aprender com as correções que o usuário faz;
 - limite de gastos com alerta quando for ultrapassado.
 
+## Uso de IA
+ 
+O grupo usou IA como apoio no desenvolvimento. Todo código sugerido pela IA foi lido, testado e enviado por Pull Request antes do merge.
+
+
+| Ferramenta | Modelo | Quem usou |
+|---|---|---|
+| Claude (claude.ai, chat) | Claude Sonnet 5.5 | Débora |
+| _preencher_ | _preencher_ | Renata |
+
+## Dinâmica de uso
+ 
+1. Enviávamos a captura de tela do erro, pedido de ajuda no desenvolvimento, duvidas sobre as funcionalidades e descrevíamos o que queríamos.
+2. Pedíamos mudanças pequenas e explicadas, para entender o que cada trecho fazia.
+3. A IA entregava só os arquivos alterados, junto com a explicação de cada mudança.
+4. Lemos o código, rodamos `npm test` e conferimos a tela com `npm start` antes de fazer commit.
+5. As mudanças foram enviadas por Pull Request.
+
+## Exemplo de Prompts
+
+**Debora** 
+
+### 1. Conflito de merge no PR do filtro por período
+ 
+**Prompt** (com captura da tela do GitHub):
+> "No meu outro pull request, onde adicionei a funcionalidade de filtrar por periodo esta dando conflito, me ajude a resolver sem alterar as funcionalidades do projeto atualmente. O conflito esta no arquivo utils.js"
+ 
+**Resposta da IA:** explicou que a `main` tinha corrigido uma linha do filtro de ano enquanto a branch reescrevia a função inteira, e indicou usar "Accept current change". A IA reproduziu o merge localmente e conferiu que o resultado era idêntico à versão da branch.
+ 
+**Decisão: aceita.** O PR #19 foi resolvido dessa forma e integrado à `main`.
+
+### 2. Comparar o plano do projeto com o código
+ 
+**Prompt** (com o PDF da entrega inicial anexado):
+> "Tem alguma funcionalidade deste plano do projeto que ainda não foi implementada no projeto real? Me informe quais funcionalidades ainda faltam ser implementadas"
+ 
+**Resposta da IA:** lista do que faltava (persistência, edição/exclusão, aprendizado com correções, exportação de relatório, forma de pagamento, orçamento por categoria) e das divergências entre o plano e o projeto (CircleCI × Jenkins, IndexedDB × Supabase).
+ 
+**Decisão: aceita.** Usada para escolher a próxima funcionalidade (edição e exclusão).
+
+### 3. Edição e exclusão de transações
+ 
+**Prompt**
+> "Quero que me ajude a implementar a Edição e exclusão de transações. Lembrando que a implementaçao deve ser de forma simples, pois preciso entender como foi feito. Me explique passo a passo"
+ 
+**Resposta da IA:** uma lista de transações que alterava apenas o estado local (`useState`), feita sobre a `main` daquele momento.
+ 
+**Decisão: descartada.** O projeto já tinha passado a usar o Supabase, então editar e excluir precisavam alterar o banco.
+ 
 ## Requisitos funcionais
 
 - **RF01:** cadastrar uma transação com descrição, valor, data, categoria e tipo (entrada ou saída).
