@@ -1,4 +1,4 @@
-import { filtrarPorPeriodo, agruparPorCategoria, formatarReais, calcularTotalGasto, listarAnos } from '../utils'
+import { filtrarPorPeriodo, agruparPorCategoria, formatarReais, calcularTotalGasto, listarAnos, sugerirCategoria } from '../utils'
 
 describe('agruparPorCategoria', () => {
   test('soma os valores de saídas da mesma categoria', () => {
@@ -14,6 +14,17 @@ describe('agruparPorCategoria', () => {
     })
   })
 
+  describe('sugerirCategoria', () => {
+  test('reconhece palavra-chave ignorando maiúsculas e acentos', () => {
+    expect(sugerirCategoria('Ônibus')).toBe('Transporte')
+    expect(sugerirCategoria('Ifood')).toBe('Alimentação')
+    expect(sugerirCategoria('Salário')).toBe('Salário')
+  })
+
+  test('[negativo] retorna null quando nada combina', () => {
+    expect(sugerirCategoria('Cinema')).toBeNull()
+  })
+})
   test('[negativo] ignora transações do tipo entrada', () => {
     const transacoes = [
       { tipo: 'entrada', categoria: 'Salário', valor: 3000 },

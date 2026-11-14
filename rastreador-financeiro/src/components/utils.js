@@ -46,6 +46,22 @@ export function filtrarPorPeriodo(transacoes, filtro, agora = new Date(), mesEsc
         return dataTransacao >= intervalo.inicio && dataTransacao <= intervalo.fim
     })
 }
+const PALAVRAS_CHAVE = {
+    Transporte: ['uber', 'onibus', 'gasolina'],
+    Alimentação: ['mercado', 'supermercado', 'comida', 'ifood', 'restaurante', 'lanche'],
+    Salário: ['salario', 'pix', 'recebimento'],
+}
+
+function removerAcentos(texto) {
+    return texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+export function sugerirCategoria(texto) {
+    const t = removerAcentos(texto)
+    const encontrada = Object.entries(PALAVRAS_CHAVE)
+        .find(([, palavras]) => palavras.some((p) => t.includes(p)))
+    return encontrada ? encontrada[0] : null
+}
 
 export function agruparPorCategoria(transacoes) {
     const totais = {}
@@ -59,6 +75,7 @@ export function agruparPorCategoria(transacoes) {
     return {
         labels: Object.keys(totais),
         valores: Object.values(totais),
+        
     }
 }
 
