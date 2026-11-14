@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event'
 import TransactionForm from '../Transactionform'
 import { supabase } from '../../services/supabaseClient'
 
-// Mock global do Supabase
 jest.mock('../../services/supabaseClient', () => ({
   supabase: {
     from: jest.fn(),
@@ -129,8 +128,6 @@ describe('TransactionForm - sugestão de categoria', () => {
   test('sugere Alimentação ao sair do campo com "Ifood"', async () => {
     render(<TransactionForm onAdd={onAdd} />)
     const descricao = screen.getByLabelText(/descrição/i)
-
-    // primeiro muda para Transporte, para provar que a sugestão realmente troca a categoria
     await userEvent.type(descricao, 'Uber')
     await userEvent.tab()
     expect(screen.getByLabelText(/categoria/i)).toHaveValue('Transporte')
@@ -244,8 +241,6 @@ describe('TransactionForm - edição de transação', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /salvar alterações/i }))
 
-    // onCancelarEdicao é a última coisa chamada no handleSubmit,
-    // então quando ele aparece, todo o resto já aconteceu
     await waitFor(() => expect(onCancelarEdicao).toHaveBeenCalledTimes(1))
 
     expect(supabase.from).toHaveBeenCalledWith('id')
