@@ -62,7 +62,6 @@ Esta seção registra as melhorias de código feitas sem alterar o comportamento
 - **Por quê:** atende o RNF04 (regras de cálculo em funções próprias), deixa o componente mais curto e permite testar as contas sem renderizar a tela. Foram adicionados testes dessas funções em `utils.test.js`.
 - **PR:** https://github.com/C14-Inatel-2026-2/Rastreador-Financeiro/pull/29
 
-
 ### Código morto no projeto
 
 - **Smell:** Dead Code. O `transactionService.js` ficou sem uso depois que o `Transactionform.js` e o `Dashboard.js` passaram a falar direto com o `supabaseClient`, e nada mais importava o arquivo.
@@ -70,13 +69,19 @@ Esta seção registra as melhorias de código feitas sem alterar o comportamento
 - **Por quê:** havia dois caminhos para acessar os dados, o que gerava confusão e chegou a atrapalhar os testes, em que o mock do Supabase não batia com o que o código usava. Como nada importava o arquivo, o comportamento não muda.
 - **PR:** https://github.com/C14-Inatel-2026-2/Rastreador-Financeiro/pull/28
 
-
 ### Sugestão de categoria dentro do componente
 
 - **Smell:** Conditional Complexity. A `sugerirCategoria` ficava dentro do `Transactionform.js`, com uma cadeia de `if` e vários `includes`, e só podia ser testada pela tela.
 - **Refactoring aplicado:** Move Function + Replace Conditional with Lookup Table. A função foi para o `utils.js` e as palavras-chave passaram para um mapa `PALAVRAS_CHAVE` (categoria → palavras). A troca da cadeia de `if` por uma lista de regras já tinha entrado no PR #28, junto com o suporte a acentos e a palavra "ifood".
 - **Por quê:** adicionar uma regra agora é só uma linha no mapa, sem mexer na função. Fora do componente, ela ganhou testes unitários em `utils.test.js` (incluindo um caso sem correspondência), e o comportamento não muda.
 - **PR:** https://github.com/C14-Inatel-2026-2/Rastreador-Financeiro/pull/30
+
+### Filtro de período dentro do Dashboard
+
+- **Smell:** Long Method (JSX longo) e regra de exibição escondida no meio da tela. Os três selects (semana/mês/ano, mês e ano) e a condição de quando cada um aparece ficavam misturados com o resto do `Dashboard.js`.
+- **Refactoring aplicado:** Extract Component. Foi criado `FiltroPeriodo.js`, que recebe o filtro, o mês, o ano e suas funções de alteração por props. A constante `MESES` foi para dentro dele.
+- **Por quê:** a regra de qual select aparece em cada filtro (RF05) fica em um só lugar, e o `Dashboard.js` só liga o componente ao estado.
+- **PR:** https://github.com/C14-Inatel-2026-2/Rastreador-Financeiro/pull/31
 
 ## Organização do projeto
 

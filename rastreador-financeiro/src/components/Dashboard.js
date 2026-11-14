@@ -1,15 +1,11 @@
 import './Dashboard.css'
 import GraficoGastos from './GraficoGastos'
 import Transactionform from './Transactionform'
+import FiltroPeriodo from './FiltroPeriodo'
 import LimiteForm from './LimiteForm'
 import { useState, useEffect } from 'react'
 import { agruparPorCategoria, filtrarPorPeriodo, formatarReais, calcularTotalGasto, listarAnos } from './utils'
 import { supabase } from '../services/supabaseClient'
-
-const MESES = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
-]
 
 const TABELA = 'id'
 
@@ -124,29 +120,12 @@ function handleEditar(transacao) {
                 <div>
                     <h1>Dashboard</h1>
                 </div>
-                <div className="filtros-container">
-                    <select value={filtro} onChange={(e) => setFiltro(e.target.value)}>
-                        <option value="semana">Semana</option>
-                        <option value="mes">Mês</option>
-                        <option value="ano">Ano</option>
-                    </select>
-
-                    {filtro === 'mes' && (
-                        <select value={mesSelecionado} onChange={(e) => setMesSelecionado(Number(e.target.value))}>
-                            {MESES.map((mes, index) => (
-                                <option key={index} value={index}>{mes}</option>
-                            ))}
-                        </select>
-                    )}
-
-                    {(filtro === 'mes' || filtro === 'ano') && (
-                        <select value={anoSelecionado} onChange={(e) => setAnoSelecionado(Number(e.target.value))}>
-                            {anos.map((ano) => (
-                                <option key={ano} value={ano}>{ano}</option>
-                            ))}
-                        </select>
-                    )}
-                </div>
+                <FiltroPeriodo
+                    filtro={filtro} onFiltro={setFiltro}
+                    mes={mesSelecionado} onMes={setMesSelecionado}
+                    ano={anoSelecionado} onAno={setAnoSelecionado}
+                    anos={anos}
+                />
             </div>
 
             <div className="limite">
